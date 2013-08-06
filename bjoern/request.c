@@ -1,5 +1,5 @@
 #include <Python.h>
-#include <cStringIO.h>
+#include "bytesio.h"
 #include "request.h"
 #include "filewrapper.h"
 
@@ -7,14 +7,6 @@ static inline void PyDict_ReplaceKey(PyObject* dict, PyObject* k1, PyObject* k2)
 static PyObject* wsgi_http_header(string header);
 static http_parser_settings parser_settings;
 static PyObject* wsgi_base_dict = NULL;
-
-/* Non-public type from cStringIO I abuse in on_body */
-typedef struct {
-  PyObject_HEAD
-  char *buf;
-  Py_ssize_t pos, string_size;
-  PyObject *pbuf;
-} Iobject;
 
 Request* Request_new(int client_fd, const char* client_addr)
 {
@@ -24,7 +16,7 @@ Request* Request_new(int client_fd, const char* client_addr)
   request->id = request_id++;
 #endif
   request->client_fd = client_fd;
-  request->client_addr = PyString_FromString(client_addr);
+  request->client_addr = PyBytes_FromString(client_addr);
   http_parser_init((http_parser*)&request->parser, HTTP_REQUEST);
   request->parser.parser.data = request;
   Request_reset(request);
@@ -122,14 +114,14 @@ on_path(http_parser* parser, const char* path, size_t len)
 {
   if(!(len = unquote_url_inplace((char*)path, len)))
     return 1;
-  _set_header_free_value(_PATH_INFO, PyString_FromStringAndSize(path, len));
+  _set_header_free_value(_PATH_INFO, PyBytes_FromStringAndSize(path, len));
   return 0;
 }
 
 static int
 on_query_string(http_parser* parser, const char* query, size_t len)
 {
-  _set_header_free_value(_QUERY_STRING, PyString_FromStringAndSize(query, len));
+  _set_header_free_value(_QUERY_STRING, PyBytes_FromStringAndSize(query, len));
   return 0;
 }
 
@@ -140,7 +132,7 @@ on_header_field(http_parser* parser, const char* field, size_t len)
     /* Store previous header and start a new one */
     _set_header_free_both(
       wsgi_http_header(PARSER->field),
-      PyString_FromStringAndSize(PARSER->value.data, PARSER->value.len)
+      PyBytes_FromStringAndSize(PARSER->value.data, PARSER->value.len)
     );
   } else if(PARSER->field.data) {
     UPDATE_LENGTH(field);
@@ -169,7 +161,7 @@ on_headers_complete(http_parser* parser)
   if(PARSER->field.data) {
     _set_header_free_both(
       wsgi_http_header(PARSER->field),
-      PyString_FromStringAndSize(PARSER->value.data, PARSER->value.len)
+      PyBytes_FromStringAndSize(PARSER->value.data, PARSER->value.len)
     );
   }
   return 0;
@@ -178,24 +170,23 @@ on_headers_complete(http_parser* parser)
 static int
 on_body(http_parser* parser, const char* data, const size_t len)
 {
-  Iobject* body;
+  bytesio *body;
 
-  body = (Iobject*)PyDict_GetItem(REQUEST->headers, _wsgi_input);
+  body = (bytesio*)PyDict_GetItem(REQUEST->headers, _wsgi_input);
   if(body == NULL) {
     if(!parser->content_length) {
       REQUEST->state.error_code = HTTP_LENGTH_REQUIRED;
       return 1;
     }
-    PyObject* buf = PyString_FromStringAndSize(NULL, parser->content_length);
-    body = (Iobject*)PycStringIO->NewInput(buf);
-    Py_XDECREF(buf);
+    PyObject *arglist = Py_BuildValue("(y#)", NULL, parser->content_length);
+    body = (bytesio*)PyObject_CallObject((PyObject *) &PyBytesIO_Type, arglist);
+    Py_XDECREF(arglist);
     if(body == NULL)
       return 1;
     _set_header(_wsgi_input, (PyObject*)body);
     Py_DECREF(body);
   }
-  memcpy(body->buf + body->pos, data, len);
-  body->pos += len;
+  bytesio_write_bytes(body, data, len);
   return 0;
 }
 
@@ -215,7 +206,7 @@ on_message_complete(http_parser* parser)
     _set_header(_REQUEST_METHOD, _GET);
   } else {
     _set_header_free_value(_REQUEST_METHOD,
-      PyString_FromString(http_method_str(parser->method)));
+      PyBytes_FromString(http_method_str(parser->method)));
   }
 
   /* REMOTE_ADDR */
@@ -225,10 +216,11 @@ on_message_complete(http_parser* parser)
   if(body) {
     /* We abused the `pos` member for tracking the amount of data copied from
      * the buffer in on_body, so reset it to zero here. */
-    ((Iobject*)body)->pos = 0;
+    ((bytesio*)body)->pos = 0;
   } else {
     /* Request has no body */
-    _set_header_free_value(_wsgi_input, PycStringIO->NewInput(_empty_string));
+          // XXX create an empty bytesio
+    //_set_header_free_value(_wsgi_input, (_empty_string));
   }
 
   PyDict_Update(REQUEST->headers, wsgi_base_dict);
@@ -241,8 +233,8 @@ on_message_complete(http_parser* parser)
 static PyObject*
 wsgi_http_header(string header)
 {
-  PyObject* obj = PyString_FromStringAndSize(NULL, header.len+strlen("HTTP_"));
-  char* dest = PyString_AS_STRING(obj);
+  PyObject* obj = PyBytes_FromStringAndSize(NULL, header.len+strlen("HTTP_"));
+  char* dest = PyBytes_AS_STRING(obj);
 
   *dest++ = 'H';
   *dest++ = 'T';
@@ -285,7 +277,6 @@ parser_settings = {
 void _initialize_request_module(const char* server_host, const int server_port)
 {
   if(wsgi_base_dict == NULL) {
-    PycString_IMPORT;
     wsgi_base_dict = PyDict_New();
 
     /* dct['wsgi.file_wrapper'] = FileWrapper */
@@ -306,7 +297,7 @@ void _initialize_request_module(const char* server_host, const int server_port)
     PyDict_SetItemString(
       wsgi_base_dict,
       "wsgi.version",
-      PyTuple_Pack(2, PyInt_FromLong(1), PyInt_FromLong(0))
+      PyTuple_Pack(2, PyLong_FromLong(1), PyLong_FromLong(0))
     );
 
     /* dct['wsgi.url_scheme'] = 'http'
@@ -314,7 +305,7 @@ void _initialize_request_module(const char* server_host, const int server_port)
     PyDict_SetItemString(
       wsgi_base_dict,
       "wsgi.url_scheme",
-      PyString_FromString("http")
+      PyBytes_FromString("http")
     );
 
     /* dct['wsgi.errors'] = sys.stderr */
@@ -352,12 +343,12 @@ void _initialize_request_module(const char* server_host, const int server_port)
   PyDict_SetItemString(
     wsgi_base_dict,
     "SERVER_NAME",
-    PyString_FromString(server_host)
+    PyBytes_FromString(server_host)
   );
 
   PyDict_SetItemString(
     wsgi_base_dict,
     "SERVER_PORT",
-    server_port ? PyString_FromFormat("%d", server_port) : _empty_string
+    server_port ? PyBytes_FromFormat("%d", server_port) : _empty_string
   );
 }

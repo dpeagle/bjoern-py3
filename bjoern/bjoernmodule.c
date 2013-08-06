@@ -90,7 +90,16 @@ static PyMethodDef Bjoern_FunctionTable[] = {
   {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC initbjoern(void)
+static PyModuleDef bjoernmodule = {
+    PyModuleDef_HEAD_INIT,
+    "bjoern",
+    "A wsgi server written in C.",
+    -1,
+    Bjoern_FunctionTable, NULL, NULL, NULL, NULL
+};
+
+PyMODINIT_FUNC 
+PyInit_bjoern(void)
 {
   _init_common();
   _init_filewrapper();
@@ -100,6 +109,14 @@ PyMODINIT_FUNC initbjoern(void)
   PyType_Ready(&StartResponse_Type);
   assert(StartResponse_Type.tp_flags & Py_TPFLAGS_READY);
 
-  PyObject* bjoern_module = Py_InitModule("bjoern", Bjoern_FunctionTable);
-  PyModule_AddObject(bjoern_module, "version", Py_BuildValue("(iii)", 1, 3, 2));
+  PyObject* m = PyModule_Create(&bjoernmodule);
+  if (m == NULL)
+          return NULL;
+  Py_INCREF(&FileWrapper_Type);
+  Py_INCREF(&StartResponse_Type);
+
+  PyModule_AddObject(m, "version", Py_BuildValue("(iii)", 1, 3, 2));
+  PyModule_AddObject(m, "FileWrapper", (PyObject *)&FileWrapper_Type);
+  PyModule_AddObject(m, "StartResponse", (PyObject *)&StartResponse_Type);
+  return m;
 }

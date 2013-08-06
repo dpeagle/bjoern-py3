@@ -61,7 +61,7 @@ resize_buffer(bytesio *self, size_t size)
     new_buf = (char *)PyMem_Realloc(self->buf, alloc * sizeof(char));
 
     if (new_buf == NULL) {
-        PyErr_Memory();
+        PyErr_NoMemory();
         return -1;
     }
 
@@ -70,13 +70,13 @@ resize_buffer(bytesio *self, size_t size)
 
     return 0;
 overflow:
-    PyErr_SetString(PyErr_OverflowError,
-            "new buffer size too large");
+    PyErr_SetString(PyExc_OverflowError,
+            "new buffer size too large!");
     return -1;
 }
 
-static Py_ssize_t
-write_bytes(bytesio *self, const char *bytes, Py_ssize_t len)
+Py_ssize_t
+bytesio_write_bytes(bytesio *self, const char *bytes, Py_ssize_t len)
 {
     assert(self->buf != NULL);
     assert(self->pos >= 0);
@@ -93,7 +93,7 @@ write_bytes(bytesio *self, const char *bytes, Py_ssize_t len)
     }
 
     memcpy(self->buf + self->pos, bytes, len);
-    sefl->pos += len;
+    self->pos += len;
 
     if (self->string_size < self->pos)
         self->string_size = self->pos;
@@ -125,7 +125,7 @@ bytesio_read(bytesio *self, PyObject *args)
 
     if (PyLong_Check(args)) {
         size = PyLong_AsSsize_t(arg);
-        if (size == -1 && PyErr_Occured()) return NULL;
+        if (size == -1 && PyErr_Occurred()) return NULL;
     }
     else if (arg == Py_None) {
         /* Read until EOF is reached, by default. */
@@ -183,6 +183,19 @@ bytesio_iternext(bytesio *self)
     return PyBytes_FromStringAndSize(next, n);
 }
 
+static void
+bytesio_dealloc(bytesio *self)
+{
+        _PyObject_GC_UNTRACK(self);
+
+        if (self->buf != NULL) {
+                PyMem_Free(self->buf);
+                self->buf = NULL;
+        }
+
+        Py_TYPE(self)->tp_free(self);
+}
+
 PyObject *
 bytesio_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
@@ -195,7 +208,7 @@ bytesio_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     self->buf = (char *)PyMem_Malloc(0);
     if (self->buf == NULL) {
         Py_DECREF(self);
-        return pyErr_NoMemory();
+        return PyErr_NoMemory();
     }
 
     return (PyObject *)self;
@@ -205,7 +218,7 @@ static int
 bytesio_init(bytesio *self, PyObject *args, PyObject *kwargs)
 {
     char *kwlist[] = {"initial_bytes", NULL};
-    PyObject *initalue = NULL;
+    PyObject *initvalue = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O:ByteIO", kwlist,
                 &initvalue))
@@ -236,11 +249,11 @@ bytesio_write(bytesio *self, PyObject *obj)
 
     CHECK_CLOSED(self);
 
-    if (PyObject_GetBuffer(obj, &buf, PyBUF_CONFIG_RO) < 0)
+    if (PyObject_GetBuffer(obj, &buf, PyBUF_CONTIG_RO) < 0)
         return NULL;
 
     if (buf.len != 0)
-        n = write_bytes(self, buf.buf, buf.len);
+        n = bytesio_write_bytes(self, buf.buf, buf.len);
 
     if (n >= 0)
         result = PyLong_FromSsize_t(n);
@@ -251,11 +264,14 @@ bytesio_write(bytesio *self, PyObject *obj)
 
 static struct PyMethodDef bytesio_methods[] = {
     {"size", (PyCFunction) bytesio_size, METH_NOARGS, NULL},
-    {"read", (PyCFunction) bytesio_read, METH_0, read_doc},
+    {"read", (PyCFunction) bytesio_read, METH_O, read_doc},
     {"readline", (PyCFunction) bytesio_readline, METH_NOARGS, readline_doc},
     {NULL, NULL} /* Sentinel */
 };
 
+
+PyDoc_STRVAR(bytesio_doc,
+                "");
 PyTypeObject PyBytesIO_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "_io.BytesIO",                             /*tp_name*/
@@ -279,20 +295,20 @@ PyTypeObject PyBytesIO_Type = {
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE |
     Py_TPFLAGS_HAVE_GC,                        /*tp_flags*/
     bytesio_doc,                               /*tp_doc*/
-    (traverseproc)bytesio_traverse,            /*tp_traverse*/
-    (inquiry)bytesio_clear,                    /*tp_clear*/
+    0,                                         /*tp_traverse*/
+    0,                                         /*tp_clear*/
     0,                                         /*tp_richcompare*/
-    offsetof(bytesio, weakreflist),      /*tp_weaklistoffset*/
+    0,                                         /*tp_weaklistoffset*/
     PyObject_SelfIter,                         /*tp_iter*/
     (iternextfunc)bytesio_iternext,            /*tp_iternext*/
     bytesio_methods,                           /*tp_methods*/
     0,                                         /*tp_members*/
-    bytesio_getsetlist,                        /*tp_getset*/
+    0,                                         /*tp_getset*/
     0,                                         /*tp_base*/
     0,                                         /*tp_dict*/
     0,                                         /*tp_descr_get*/
     0,                                         /*tp_descr_set*/
-    offsetof(bytesio, dict),             /*tp_dictoffset*/
+    0,                                         /*tp_dictoffset*/
     (initproc)bytesio_init,                    /*tp_init*/
     0,                                         /*tp_alloc*/
     bytesio_new,                               /*tp_new*/

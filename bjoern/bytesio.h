@@ -14,7 +14,7 @@ typedef struct {
     PyObject_HEAD
     char *buf;
     Py_ssize_t pos;
-    py_sssize_t string_size;
+    Py_ssize_t string_size;
     size_t buf_size;
 } bytesio;
 
@@ -29,9 +29,13 @@ PyObject *bytesio_iternext(bytesio *self);
 
 // Constructor destructor etc
 
-void bytesio_dealloc(bytesio *self);
+//void bytesio_dealloc(bytesio *self);
 
 PyObject *bytesio_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 
 PyObject *bytesio_write(bytesio *self, PyObject *obj);
+
+Py_ssize_t bytesio_write_bytes(bytesio *self, const char *bytes, Py_ssize_t len);
+
+PyTypeObject PyBytesIO_Type;
 #endif

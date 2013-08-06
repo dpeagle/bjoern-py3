@@ -9,10 +9,10 @@ FileWrapper_New(PyTypeObject* cls, PyObject* args, PyObject* kwargs)
   if(!PyArg_ParseTuple(args, "O|I:FileWrapper", &file, &ignored_blocksize))
     return NULL;
 
-  if(!PyFile_Check(file)) {
-    TYPE_ERROR("FileWrapper argument", "file", file);
-    return NULL;
-  }
+  //if(!PyFile_Check(file)) {
+  //  TYPE_ERROR("FileWrapper argument", "file", file);
+  //  return NULL;
+  //}
 
   Py_INCREF(file);
   PyFile_IncUseCount((PyFileObject*)file);

@@ -192,7 +192,7 @@ ev_io_on_read(struct ev_loop* mainloop, ev_io* watcher, const int events)
 
   if(request->state.error_code) {
     DBG_REQ(request, "Parse error");
-    request->current_chunk = PyString_FromString(
+    request->current_chunk = PyBytes_FromString(
       http_error_messages[request->state.error_code]);
     assert(request->iterator == NULL);
   }
@@ -202,7 +202,7 @@ ev_io_on_read(struct ev_loop* mainloop, ev_io* watcher, const int events)
       PyErr_Print();
       assert(!request->state.chunked_response);
       Py_XCLEAR(request->iterator);
-      request->current_chunk = PyString_FromString(
+      request->current_chunk = PyBytes_FromString(
         http_error_messages[HTTP_SERVER_ERROR]);
     }
   } else {
@@ -277,7 +277,7 @@ ev_io_on_write(struct ev_loop* mainloop, ev_io* watcher, const int events)
 
     if(request->state.chunked_response) {
       /* We have to send a terminating empty chunk + \r\n */
-      request->current_chunk = PyString_FromString("0\r\n\r\n");
+      request->current_chunk = PyBytes_FromString("0\r\n\r\n");
       assert(request->current_chunk_p == 0);
       request->state.chunked_response = false;
       goto out;
@@ -308,20 +308,20 @@ send_chunk(Request* request)
   Py_ssize_t bytes_sent;
 
   assert(request->current_chunk != NULL);
-  assert(!(request->current_chunk_p == PyString_GET_SIZE(request->current_chunk)
-           && PyString_GET_SIZE(request->current_chunk) != 0));
+  assert(!(request->current_chunk_p == PyBytes_GET_SIZE(request->current_chunk)
+           && PyBytes_GET_SIZE(request->current_chunk) != 0));
 
   bytes_sent = write(
     request->client_fd,
-    PyString_AS_STRING(request->current_chunk) + request->current_chunk_p,
-    PyString_GET_SIZE(request->current_chunk) - request->current_chunk_p
+    PyBytes_AS_STRING(request->current_chunk) + request->current_chunk_p,
+    PyBytes_GET_SIZE(request->current_chunk) - request->current_chunk_p
   );
 
   if(bytes_sent == -1)
     return handle_nonzero_errno(request);
 
   request->current_chunk_p += bytes_sent;
-  if(request->current_chunk_p == PyString_GET_SIZE(request->current_chunk)) {
+  if(request->current_chunk_p == PyBytes_GET_SIZE(request->current_chunk)) {
     Py_CLEAR(request->current_chunk);
     request->current_chunk_p = 0;
     return false;
