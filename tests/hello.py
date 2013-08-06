@@ -2,22 +2,22 @@ import bjoern
 from random import choice
 
 def app1(env, sr):
-    sr('200 ok', [('Foo', 'Bar'), ('Blah', 'Blubb'), ('Spam', 'Eggs'), ('Blurg', 'asdasjdaskdasdjj asdk jaks / /a jaksdjkas jkasd jkasdj '),
-                  ('asd2easdasdjaksdjdkskjkasdjka', 'oasdjkadk kasdk k k k k k ')])
+    sr(b'200 ok', [(b'Foo', b'Bar'), (b'Blah', b'Blubb'), (b'Spam', b'Eggs'), (b'Blurg', b'asdasjdaskdasdjj asdk jaks / /a jaksdjkas jkasd jkasdj '),
+                  (b'asd2easdasdjaksdjdkskjkasdjka', b'oasdjkadk kasdk k k k k k ')])
     return [b'hello', b'world']
 
 def app2(env, sr):
-    sr('200 ok', [])
+    sr(b'200 ok', [])
     return b'hello'
 
 def app3(env, sr):
-    sr('200 abc', [('Content-Length', '12')])
+    sr(b'200 abc', [(b'Content-Length', b'12')])
     yield b'Hello'
     yield b' World'
     yield b'\n'
 
 def app4(e, s):
-    s('200 ok', [])
+    s(b'200 ok', [])
     return [b'hello\n']
 
 apps = (app1, app2, app3, app4)
