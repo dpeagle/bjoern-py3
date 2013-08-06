@@ -4,21 +4,21 @@ from random import choice
 def app1(env, sr):
     sr('200 ok', [('Foo', 'Bar'), ('Blah', 'Blubb'), ('Spam', 'Eggs'), ('Blurg', 'asdasjdaskdasdjj asdk jaks / /a jaksdjkas jkasd jkasdj '),
                   ('asd2easdasdjaksdjdkskjkasdjka', 'oasdjkadk kasdk k k k k k ')])
-    return ['hello', 'world']
+    return [b'hello', b'world']
 
 def app2(env, sr):
     sr('200 ok', [])
-    return 'hello'
+    return b'hello'
 
 def app3(env, sr):
     sr('200 abc', [('Content-Length', '12')])
-    yield 'Hello'
-    yield ' World'
-    yield '\n'
+    yield b'Hello'
+    yield b' World'
+    yield b'\n'
 
 def app4(e, s):
     s('200 ok', [])
-    return ['hello\n']
+    return [b'hello\n']
 
 apps = (app1, app2, app3, app4)
 
