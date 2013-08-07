@@ -16,7 +16,7 @@ Request* Request_new(int client_fd, const char* client_addr)
   request->id = request_id++;
 #endif
   request->client_fd = client_fd;
-  request->client_addr = PyBytes_FromString(client_addr);
+  request->client_addr = PyUnicode_FromString(client_addr);
   http_parser_init((http_parser*)&request->parser, HTTP_REQUEST);
   request->parser.parser.data = request;
   Request_reset(request);
@@ -114,14 +114,14 @@ on_path(http_parser* parser, const char* path, size_t len)
 {
   if(!(len = unquote_url_inplace((char*)path, len)))
     return 1;
-  _set_header_free_value(_PATH_INFO, PyBytes_FromStringAndSize(path, len));
+  _set_header_free_value(_PATH_INFO, PyUnicode_FromStringAndSize(path, len));
   return 0;
 }
 
 static int
 on_query_string(http_parser* parser, const char* query, size_t len)
 {
-  _set_header_free_value(_QUERY_STRING, PyBytes_FromStringAndSize(query, len));
+  _set_header_free_value(_QUERY_STRING, PyUnicode_FromStringAndSize(query, len));
   return 0;
 }
 
@@ -132,7 +132,7 @@ on_header_field(http_parser* parser, const char* field, size_t len)
     /* Store previous header and start a new one */
     _set_header_free_both(
       wsgi_http_header(PARSER->field),
-      PyBytes_FromStringAndSize(PARSER->value.data, PARSER->value.len)
+      PyUnicode_FromStringAndSize(PARSER->value.data, PARSER->value.len)
     );
   } else if(PARSER->field.data) {
     UPDATE_LENGTH(field);
@@ -161,7 +161,7 @@ on_headers_complete(http_parser* parser)
   if(PARSER->field.data) {
     _set_header_free_both(
       wsgi_http_header(PARSER->field),
-      PyBytes_FromStringAndSize(PARSER->value.data, PARSER->value.len)
+      PyUnicode_FromStringAndSize(PARSER->value.data, PARSER->value.len)
     );
   }
   return 0;
@@ -206,7 +206,7 @@ on_message_complete(http_parser* parser)
     _set_header(_REQUEST_METHOD, _GET);
   } else {
     _set_header_free_value(_REQUEST_METHOD,
-      PyBytes_FromString(http_method_str(parser->method)));
+      PyUnicode_FromString(http_method_str(parser->method)));
   }
 
   /* REMOTE_ADDR */
@@ -233,26 +233,27 @@ on_message_complete(http_parser* parser)
 static PyObject*
 wsgi_http_header(string header)
 {
-  PyObject* obj = PyBytes_FromStringAndSize(NULL, header.len+strlen("HTTP_"));
-  char* dest = PyBytes_AS_STRING(obj);
+  int size = header.len+strlen("HTTP_");
+  char dest[size];
+  int i = 0;
 
-  *dest++ = 'H';
-  *dest++ = 'T';
-  *dest++ = 'T';
-  *dest++ = 'P';
-  *dest++ = '_';
+  dest[i++] = 'H';
+  dest[i++] = 'T';
+  dest[i++] = 'T';
+  dest[i++] = 'P';
+  dest[i++] = '_';
 
   while(header.len--) {
     char c = *header.data++;
     if(c == '-')
-      *dest++ = '_';
+      dest[i++] = '_';
     else if(c >= 'a' && c <= 'z')
-      *dest++ = c - ('a'-'A');
+      dest[i++] = c - ('a'-'A');
     else
-      *dest++ = c;
+      dest[i++] = c;
   }
 
-  return obj;
+  return (PyObject *)PyUnicode_FromStringAndSize(dest, size);
 }
 
 static inline void
@@ -305,7 +306,7 @@ void _initialize_request_module(const char* server_host, const int server_port)
     PyDict_SetItemString(
       wsgi_base_dict,
       "wsgi.url_scheme",
-      PyBytes_FromString("http")
+      PyUnicode_FromString("http")
     );
 
     /* dct['wsgi.errors'] = sys.stderr */
@@ -343,12 +344,12 @@ void _initialize_request_module(const char* server_host, const int server_port)
   PyDict_SetItemString(
     wsgi_base_dict,
     "SERVER_NAME",
-    PyBytes_FromString(server_host)
+    PyUnicode_FromString(server_host)
   );
 
   PyDict_SetItemString(
     wsgi_base_dict,
     "SERVER_PORT",
-    server_port ? PyBytes_FromFormat("%d", server_port) : _empty_string
+    server_port ? PyUnicode_FromFormat("%d", server_port) : _empty_string
   );
 }

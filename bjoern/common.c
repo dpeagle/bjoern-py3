@@ -28,13 +28,13 @@ size_t unquote_url_inplace(char* url, size_t len)
 
 void _init_common()
 {
-  #define _(name) _##name = PyBytes_FromString(#name)
+  #define _(name) _##name = PyUnicode_FromString(#name)
   _(REMOTE_ADDR); _(PATH_INFO); _(QUERY_STRING); _(close);
   _(REQUEST_METHOD); _(SERVER_PROTOCOL); _(GET);
   _(HTTP_CONTENT_LENGTH); _(CONTENT_LENGTH); _(HTTP_CONTENT_TYPE); _(CONTENT_TYPE);
-  _HTTP_1_1 = PyBytes_FromString("HTTP/1.1");
-  _HTTP_1_0 = PyBytes_FromString("HTTP/1.0");
-  _wsgi_input = PyBytes_FromString("wsgi.input");
-  _empty_string = PyBytes_FromString("");
+  _HTTP_1_1 = PyUnicode_FromString("HTTP/1.1");
+  _HTTP_1_0 = PyUnicode_FromString("HTTP/1.0");
+  _wsgi_input = PyUnicode_FromString("wsgi.input");
+  _empty_string = PyUnicode_FromString("");
   #undef _
 }

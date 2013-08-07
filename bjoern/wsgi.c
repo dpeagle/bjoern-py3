@@ -190,10 +190,10 @@ inspect_headers(Request* request)
     PyObject* field = PyTuple_GET_ITEM(tuple, 0);
     PyObject* value = PyTuple_GET_ITEM(tuple, 1);
 
-    if(!PyBytes_Check(field) || !PyBytes_Check(value))
+    if(!PyUnicode_Check(field) || !PyUnicode_Check(value))
       goto err;
 
-    if(!strncasecmp(PyBytes_AS_STRING(field), "Content-Length", PyBytes_GET_SIZE(field)))
+    if(!strncasecmp(PyUnicode_AsUTF8(field), "Content-Length", PyUnicode_GET_LENGTH(field)))
       request->state.response_length_unknown = false;
   }
   return true;
@@ -220,8 +220,8 @@ wsgi_getheaders(Request* request, PyObject* buf)
 
   /* First line, e.g. "HTTP/1.1 200 Ok" */
   buf_write2("HTTP/1.1 ");
-  buf_write(PyBytes_AS_STRING(request->status),
-        PyBytes_GET_SIZE(request->status));
+  buf_write(PyUnicode_AsUTF8(request->status),
+        PyUnicode_GET_LENGTH(request->status));
 
   /* Headers, from the `request->headers` mapping.
    * [("Header1", "value1"), ("Header2", "value2")]
@@ -232,9 +232,9 @@ wsgi_getheaders(Request* request, PyObject* buf)
     PyObject *field = PyTuple_GET_ITEM(tuple, 0),
          *value = PyTuple_GET_ITEM(tuple, 1);
     buf_write2("\r\n");
-    buf_write(PyBytes_AS_STRING(field), PyBytes_GET_SIZE(field));
+    buf_write(PyUnicode_AsUTF8(field), PyUnicode_GET_LENGTH(field));
     buf_write2(": ");
-    buf_write(PyBytes_AS_STRING(value), PyBytes_GET_SIZE(value));
+    buf_write(PyUnicode_AsUTF8(value), PyUnicode_GET_LENGTH(value));
   }
 
   /* See `wsgi_call_application` */
@@ -330,7 +330,7 @@ start_response(PyObject* self, PyObject* args, PyObject* kwargs)
     return NULL;
   }
 
-  if(!PyBytes_Check(status)) {
+  if(!PyUnicode_Check(status)) {
     TYPE_ERROR("start_response argument 1", "a 'status reason' string", status);
     return NULL;
   }
