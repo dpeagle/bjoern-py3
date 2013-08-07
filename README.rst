@@ -1,7 +1,11 @@
-# Bjoern ported to python 3.
+Bjoern ported to Python 3.
+==========================
+
+Tested with Python 3.3.2
+------------------------
 
 bjoern: Fast And Ultra-Lightweight Asynchronous HTTP/1.1 WSGI Server
-====================================================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A screamingly fast, ultra-lightweight asynchronous WSGI_ server for CPython,
 written in C using Marc Lehmann's high performance libev_ event loop and
