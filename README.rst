@@ -1,4 +1,4 @@
-Bjoern ported to Python 3.
+Bjoern ported to Python 3
 ==========================
 
 Tested with Python 3.3.2
