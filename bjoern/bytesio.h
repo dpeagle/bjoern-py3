@@ -37,5 +37,5 @@ PyObject *bytesio_write(bytesio *self, PyObject *obj);
 
 Py_ssize_t bytesio_write_bytes(bytesio *self, const char *bytes, Py_ssize_t len);
 
-PyTypeObject PyBytesIO_Type;
+PyTypeObject BytesIO_Type;
 #endif

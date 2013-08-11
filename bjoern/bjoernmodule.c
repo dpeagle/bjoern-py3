@@ -3,6 +3,7 @@
 #include "wsgi.h"
 #include "bjoernmodule.h"
 #include "filewrapper.h"
+#include "bytesio.h"
 
 
 PyDoc_STRVAR(listen_doc,
@@ -109,6 +110,9 @@ PyInit_bjoern(void)
   PyType_Ready(&StartResponse_Type);
   assert(StartResponse_Type.tp_flags & Py_TPFLAGS_READY);
 
+  PyType_Ready(&BytesIO_Type);
+  assert(BytesIO_Type.tp_flags & Py_TPFLAGS_READY);
+
   PyObject* m = PyModule_Create(&bjoernmodule);
   if (m == NULL)
           return NULL;
@@ -118,5 +122,6 @@ PyInit_bjoern(void)
   PyModule_AddObject(m, "version", Py_BuildValue("(iii)", 1, 3, 2));
   PyModule_AddObject(m, "FileWrapper", (PyObject *)&FileWrapper_Type);
   PyModule_AddObject(m, "StartResponse", (PyObject *)&StartResponse_Type);
+  PyModule_AddObject(m, "BytesIO", (PyObject *)&BytesIO_Type);
   return m;
 }

@@ -179,7 +179,7 @@ on_body(http_parser* parser, const char* data, const size_t len)
       return 1;
     }
     PyObject *arglist = Py_BuildValue("(y#)", NULL, parser->content_length);
-    body = (bytesio*)PyObject_CallObject((PyObject *) &PyBytesIO_Type, arglist);
+    body = (bytesio*)PyObject_CallObject((PyObject *) &BytesIO_Type, arglist);
     Py_XDECREF(arglist);
     if(body == NULL)
       return 1;

@@ -220,7 +220,7 @@ bytesio_init(bytesio *self, PyObject *args, PyObject *kwargs)
     char *kwlist[] = {"initial_bytes", NULL};
     PyObject *initvalue = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O:ByteIO", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O:BytesIO", kwlist,
                 &initvalue))
         return -1;
 
@@ -272,10 +272,10 @@ static struct PyMethodDef bytesio_methods[] = {
 
 PyDoc_STRVAR(bytesio_doc,
                 "");
-PyTypeObject PyBytesIO_Type = {
+PyTypeObject BytesIO_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "_io.BytesIO",                             /*tp_name*/
-    sizeof(bytesio),                     /*tp_basicsize*/
+    "BytesIO",                                 /*tp_name*/
+    sizeof(bytesio),                           /*tp_basicsize*/
     0,                                         /*tp_itemsize*/
     (destructor)bytesio_dealloc,               /*tp_dealloc*/
     0,                                         /*tp_print*/
@@ -313,27 +313,3 @@ PyTypeObject PyBytesIO_Type = {
     0,                                         /*tp_alloc*/
     bytesio_new,                               /*tp_new*/
 };
-
-/*
-PyMODINIT_FUNC
-PyInit_bytesio(void)
-{
-    PyObject *m;
-    if (PyType_Ready(&PyBytesIO_Type) < 0)
-        return NULL;
-
-    m = PyModule_Create(&bytesio_module);
-    if (m == NULL)
-        return NULL;
-
-    Py_INCREF(&PyBytesIO_Type);
-    PyModule_AddObject(m, "BytesIO", (PyObject *)&PyBytesIO_Type);
-    return m;
-}
-*/
-
-bytesio *
-bytesio_Create(void)
-{
-    return (bytesio *)bytesio_new(&PyBytesIO_Type, NULL, NULL);
-}
