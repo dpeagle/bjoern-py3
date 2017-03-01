@@ -4,3 +4,13 @@
 
 * body -> tempfile for large requests
 * wsgi_getheaders: get rid of buf_write (but memcpy is bad for that small strings)
+* Found error installing compiling bjoern with python 3.4.3, when running pip3 install bjoern:
+bjoern/request.c:2:23: fatal error: cStringIO.h: No such file or directory
+
+ #include <cStringIO.h>
+                       ^
+compilation terminated.
+
+error: command 'i686-linux-gnu-gcc' failed with exit status 1
+* Also failed installing with python3 setup.py install from the downloaded source, it keeps asking for http-parser eventhough 
+it has being installed on system and also download to source directory.
